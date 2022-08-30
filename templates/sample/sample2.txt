@@ -1,0 +1,4 @@
+こんにちは！ 
+{{ age }}歳の{{ name }}です。
+{% for i in items %}{{ i.like }} {% endfor %}が好きです。
+よろしくお願いします。
