@@ -11,11 +11,6 @@ import csv
 from jinja2 import Template,Environment,FileSystemLoader
 from enum import Enum
 
-COLOR_RED = '\033[31m'
-COLOR_GREEN = '\033[32m'
-COLOR_YELLOW = '\033[33m'
-COLOR_CLEAR = '\033[0m'
-
 class Color():
     RED = '\033[31m'
     GREEN = '\033[32m'
@@ -76,7 +71,6 @@ def save_file(render, appendMode, filename, groupOutput=None):
             os.makedirs('./backup', exist_ok=True)
             BACKUP_OUTPUT_PATH = './backup/'
             backupFilename = filename + '_' + to_datetime_text()
-    
             if groupOutput:
                 try:
                     os.makedirs(BACKUP_OUTPUT_PATH + groupOutput, exist_ok=True)
@@ -141,7 +135,7 @@ def generate_config(templatefilePath, parameterfilePath, appendmode, groupOutput
             except KeyError:
                 filename = None   
                 render = template.render(params)
-                save_file(render, appendmode, filename, input_group_output())
+                save_file(render, appendmode, filename)
     elif format == Format.CSV:
         print(LoggingSeverity.INFO + 'Parameter file is CSV')
     else:
@@ -159,10 +153,8 @@ def main():
     if not(is_file(parameterFile)):
         print(LoggingSeverity.ERROR + 'Parameter file is not found...')
         exit()
-    print(COLOR_YELLOW + '########## Config Generate ##########' + COLOR_CLEAR)
+    print(Color.YELLOW + '########## Config Generate ##########' + Color.CLEAR)
     generate_config(templateFile, parameterFile, appendmode, groupOutput)
-
-    print(COLOR_YELLOW + '################ end ################' + COLOR_CLEAR)
 
 if __name__ == "__main__":
     main()
