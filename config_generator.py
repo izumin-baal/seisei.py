@@ -4,15 +4,32 @@ import argparse
 import encodings
 import os
 import shutil
+import re
 import datetime as at
 import json
 import csv
 from jinja2 import Template,Environment,FileSystemLoader
+from enum import Enum
 
 COLOR_RED = '\033[31m'
 COLOR_GREEN = '\033[32m'
 COLOR_YELLOW = '\033[33m'
 COLOR_CLEAR = '\033[0m'
+
+class Color():
+    RED = '\033[31m'
+    GREEN = '\033[32m'
+    YELLOW = '\033[33m'
+    CLEAR = '\033[0m'
+
+class Format(Enum):
+    JSON = 1
+    CSV = 2
+    UNKNOWN = 3
+
+class LoggingSeverity():
+    ERROR = Color.RED + '[Error] ' + Color.CLEAR
+    INFO = Color.GREEN + '[Info] ' + Color.CLEAR
 
 def arg_parse():
     parser = argparse.ArgumentParser("Config Generator")
@@ -37,43 +54,72 @@ def save_file(render, appendMode, filename):
         filename = str(input('What is the output file name? : '))
     output = OUTPUT_PATH + filename
     if appendMode:
-        print(COLOR_GREEN + '[Info] ' + COLOR_CLEAR + 'Append mode')
         if is_file(output):
-            print(COLOR_GREEN + '[Info] ' + COLOR_CLEAR + 'Append ' + output)
+            print(LoggingSeverity.INFO + 'Append ' + output)
         else:
-            print(COLOR_GREEN + '[Info] ' + COLOR_CLEAR + output + ' is not found...')
-            print(COLOR_GREEN + '[Info] ' + COLOR_CLEAR + 'Generate ' + output)
+            print(LoggingSeverity.INFO + output + ' is not found...')
+            print(LoggingSeverity.INFO + 'Generate ' + output)
         with open(output, mode='a') as f:
             f.write(render)
     else:
         if is_file(output):
-            print(COLOR_GREEN + '[Info] ' + COLOR_CLEAR + output + ' is already exists.')
             BACKUP_OUTPUT_PATH = './backup/'
             backupFilename = filename + '_' + to_datetime_text()
             backupOutput = BACKUP_OUTPUT_PATH + backupFilename
-            print(COLOR_GREEN + '[Info] ' + COLOR_CLEAR + 'Copy ' + output + ' to ' + backupOutput)
+            msg = ' (Copy ' + output + ' to ' + backupOutput + ')'
             shutil.copy2(output, backupOutput)
+        else:
+            msg = ""
         with open(output, mode='w') as f:
-            print(COLOR_GREEN + '[Info] ' + COLOR_CLEAR + 'Generate ' + output)
+            print(LoggingSeverity.INFO + 'Generate ' + output + msg)
             f.write(render)
+
+def judge_format(parameterfilePath):
+    matchJson = re.compile('\.json$')
+    matchCsv = re.compile('\.csv$')
+    if matchJson.search(parameterfilePath):
+        with open(parameterfilePath) as f:
+            try:
+                params = json.load(f)
+            except json.JSONDecodeError:
+                print(LoggingSeverity.ERROR + 'This parameter file is not in Json format.')
+                exit()
+        return Format.JSON
+    elif matchCsv.search(parameterfilePath):
+        return Format.CSV
+    else:
+        return Format.UNKNOWN
+
+def is_array(v):
+    return type(v) is list
 
 def generate_config(templatefilePath, parameterfilePath, mode):
     env = Environment(loader=FileSystemLoader('./', encoding="utf8"))
     template = env.get_template(templatefilePath)
-
-    with open(parameterfilePath) as f:
-        params = json.load(f)
-
-    try:
-        filename = params['filename']
-    except KeyError:
-        filename = None
-    
-    render = template.render(params)
-    print('--------- start --------------')
-    print(render)
-    print('---------  end  --------------')
-    save_file(render, mode, filename)
+    format = judge_format(parameterfilePath)
+    if format == Format.JSON:
+        print(LoggingSeverity.INFO + 'Parameter file is JSON')
+        with open(parameterfilePath) as f:
+            params = json.load(f)
+        if is_array(params):
+            for row in params:
+                try:
+                    filename = row['filename']
+                except KeyError:
+                    filename = None   
+                render = template.render(row)
+                save_file(render, mode, filename)
+        else:
+            try:
+                filename = params['filename']
+            except KeyError:
+                filename = None   
+                render = template.render(params)
+                save_file(render, mode, filename)
+    elif format == Format.CSV:
+        print(LoggingSeverity.INFO + 'Parameter file is CSV')
+    else:
+        print(LoggingSeverity.ERROR + 'Invalid parameter file. (Available Files is .csv/.json)')
 
 def main():
     args = arg_parse()
@@ -81,10 +127,10 @@ def main():
     parameterFile = args['parameter_file']
     mode = args['append']
     if not(is_file(templateFile)):
-        print(COLOR_RED + '[Error] ' + COLOR_CLEAR + 'Template file is not found...')
+        print(LoggingSeverity.ERROR + 'Template file is not found...')
         exit()
     if not(is_file(parameterFile)):
-        print(COLOR_RED + '[Error] ' + COLOR_CLEAR + 'Parameter file is not found...')
+        print(LoggingSeverity.ERROR + 'Parameter file is not found...')
         exit()
     print(COLOR_YELLOW + '########## Config Generate ##########' + COLOR_CLEAR)
     generate_config(templateFile, parameterFile, mode)
