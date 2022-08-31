@@ -10,6 +10,15 @@
 - パッケージのダウンロード
 > pip install -r requirements.txt
 
+### 必要なファイル
+- template_file
+- parameter_file
+
+### 実行方法
+> python config_generator.py [-h] [-a] <template_file> <parameter_file>
+
+#### オプション
+- -a : 追記モード。出力をファイルに上書きせず、末尾に追記する。
 
 ### ディレクトリ構造
 | ディレクトリ | 説明 |
@@ -26,3 +35,13 @@
 - 構文: `{% ... %}`  
 - 変数: `{{ ... }}`
 - コメント: `{# ... #}`
+
+### パラメータについて
+- 対応パラメータ形式
+    - CSV
+    - JSON
+
+#### 特殊なKeyについて
+| Key | 形式 | 説明 |
+| ----| ---- | ---- |
+| filename | 文字列 | 指定したファイル名で出力します |
