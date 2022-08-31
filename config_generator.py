@@ -36,6 +36,7 @@ def arg_parse():
     parser.add_argument('template_file', help='template file')
     parser.add_argument('parameter_file', help='Parameter file')
     parser.add_argument('-a', '--append', action='store_true', help='Append mode')
+    parser.add_argument('-g', '--group', action='store_true', help='Output to group folder.')
     args = vars(parser.parse_args())
     return args
 
@@ -48,11 +49,20 @@ def to_datetime_text():
     textNow = now.strftime('%Y%m%d%H%M%S')
     return  textNow
 
-def save_file(render, appendMode, filename):
+def save_file(render, appendMode, filename, groupOutput=None):
     OUTPUT_PATH = './output/'
+    os.makedirs('./output', exist_ok=True)
     if filename == None:
         filename = str(input('What is the output file name? : '))
-    output = OUTPUT_PATH + filename
+    if groupOutput:
+        try:
+            os.makedirs(OUTPUT_PATH + groupOutput, exist_ok=True)
+        except FileExistsError:
+            print(LoggingSeverity.ERROR + 'File exists')
+            exit()
+        output = OUTPUT_PATH + groupOutput + '/' + filename
+    else:
+        output = OUTPUT_PATH + filename
     if appendMode:
         if is_file(output):
             print(LoggingSeverity.INFO + 'Append ' + output)
@@ -63,9 +73,20 @@ def save_file(render, appendMode, filename):
             f.write(render)
     else:
         if is_file(output):
+            os.makedirs('./backup', exist_ok=True)
             BACKUP_OUTPUT_PATH = './backup/'
             backupFilename = filename + '_' + to_datetime_text()
-            backupOutput = BACKUP_OUTPUT_PATH + backupFilename
+    
+            if groupOutput:
+                try:
+                    os.makedirs(BACKUP_OUTPUT_PATH + groupOutput, exist_ok=True)
+                except FileExistsError:
+                    print(LoggingSeverity.ERROR + 'File exists')
+                    exit()
+                backupOutput = BACKUP_OUTPUT_PATH + groupOutput + '/' + backupFilename
+            else:
+                backupOutput = BACKUP_OUTPUT_PATH + backupFilename
+
             msg = ' (Copy ' + output + ' to ' + backupOutput + ')'
             shutil.copy2(output, backupOutput)
         else:
@@ -93,7 +114,10 @@ def judge_format(parameterfilePath):
 def is_array(v):
     return type(v) is list
 
-def generate_config(templatefilePath, parameterfilePath, mode):
+def input_group_output():
+    return input('Output group directory name: ')
+
+def generate_config(templatefilePath, parameterfilePath, appendmode, groupOutput):
     env = Environment(loader=FileSystemLoader('./', encoding="utf8"))
     template = env.get_template(templatefilePath)
     format = judge_format(parameterfilePath)
@@ -102,20 +126,22 @@ def generate_config(templatefilePath, parameterfilePath, mode):
         with open(parameterfilePath) as f:
             params = json.load(f)
         if is_array(params):
+            if groupOutput:
+                groupname = input_group_output()
             for row in params:
                 try:
                     filename = row['filename']
                 except KeyError:
                     filename = None   
                 render = template.render(row)
-                save_file(render, mode, filename)
+                save_file(render, appendmode, filename, groupname)
         else:
             try:
                 filename = params['filename']
             except KeyError:
                 filename = None   
                 render = template.render(params)
-                save_file(render, mode, filename)
+                save_file(render, appendmode, filename, input_group_output())
     elif format == Format.CSV:
         print(LoggingSeverity.INFO + 'Parameter file is CSV')
     else:
@@ -125,7 +151,8 @@ def main():
     args = arg_parse()
     templateFile = args['template_file']
     parameterFile = args['parameter_file']
-    mode = args['append']
+    appendmode = args['append']
+    groupOutput = args['group']
     if not(is_file(templateFile)):
         print(LoggingSeverity.ERROR + 'Template file is not found...')
         exit()
@@ -133,7 +160,7 @@ def main():
         print(LoggingSeverity.ERROR + 'Parameter file is not found...')
         exit()
     print(COLOR_YELLOW + '########## Config Generate ##########' + COLOR_CLEAR)
-    generate_config(templateFile, parameterFile, mode)
+    generate_config(templateFile, parameterFile, appendmode, groupOutput)
 
     print(COLOR_YELLOW + '################ end ################' + COLOR_CLEAR)
 
