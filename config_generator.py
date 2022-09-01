@@ -8,7 +8,6 @@ import re
 import datetime as at
 import json
 import csv
-import pandas as pd
 from jinja2 import Template,Environment,FileSystemLoader
 from enum import Enum
 
@@ -144,8 +143,8 @@ def generate_config(templatefilePath, parameterfilePath, appendmode, groupOutput
                     filename = None 
             except KeyError:
                 filename = None   
-                render = template.render(params)
-                save_file(render, appendmode, filename)
+            render = template.render(params)
+            save_file(render, appendmode, filename)
     elif format == Format.CSV:
         print(LoggingSeverity.INFO + 'Parameter file is CSV')
         with open(parameterfilePath) as f:
