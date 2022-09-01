@@ -1,5 +1,36 @@
-{
-    "filename": "myself.txt",
-    "name": "izumin",
-    "age": 23
-}
+[
+    {
+        "filename": "myself.txt",
+        "name": "izumin",
+        "age": 23
+    },
+    {
+        "filename": "myself2.txt",
+        "name": "izumin2",
+        "age": 23
+    },
+    {
+        "filename": "myself3.txt",
+        "name": "izumin3",
+        "age": 23
+    },
+    {
+        "filename": "myself4.txt",
+        "name": "izumin4",
+        "age": 23
+    },
+    {
+        "filename": "myself5.txt",
+        "name": "izumin5",
+        "age": 23
+    },
+    {
+        "filename": "myself6.txt",
+        "name": "izumin6",
+        "age": 23
+    },{
+        "filename": "myself7.txt",
+        "name": "izumin7",
+        "age": 23
+    }
+]
