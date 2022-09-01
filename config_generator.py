@@ -8,6 +8,7 @@ import re
 import datetime as at
 import json
 import csv
+import pandas as pd
 from jinja2 import Template,Environment,FileSystemLoader
 from enum import Enum
 
@@ -48,7 +49,8 @@ def save_file(render, appendMode, filename, groupOutput=None):
     OUTPUT_PATH = './output/'
     os.makedirs('./output', exist_ok=True)
     if filename == None:
-        filename = str(input('What is the output file name? : '))
+        while (filename == '' or filename == None or filename.isspace()):
+            filename = str(input('What is the output file name? : '))
     if groupOutput:
         try:
             os.makedirs(OUTPUT_PATH + groupOutput, exist_ok=True)
@@ -62,7 +64,6 @@ def save_file(render, appendMode, filename, groupOutput=None):
         if is_file(output):
             print(LoggingSeverity.INFO + 'Append ' + output)
         else:
-            print(LoggingSeverity.INFO + output + ' is not found...')
             print(LoggingSeverity.INFO + 'Generate ' + output)
         with open(output, mode='a') as f:
             f.write(render)
@@ -109,7 +110,10 @@ def is_array(v):
     return type(v) is list
 
 def input_group_output():
-    return input('Output group directory name: ')
+    groupname = ''
+    while (groupname == '' or groupname == None or groupname.isspace()):
+        groupname = input('Output group directory name: ')
+    return groupname
 
 def generate_config(templatefilePath, parameterfilePath, appendmode, groupOutput):
     env = Environment(loader=FileSystemLoader('./', encoding="utf8"))
@@ -122,9 +126,13 @@ def generate_config(templatefilePath, parameterfilePath, appendmode, groupOutput
         if is_array(params):
             if groupOutput:
                 groupname = input_group_output()
+            else:
+                groupname = None
             for row in params:
                 try:
                     filename = row['filename']
+                    if filename == '':
+                        filename = None  
                 except KeyError:
                     filename = None   
                 render = template.render(row)
@@ -132,12 +140,30 @@ def generate_config(templatefilePath, parameterfilePath, appendmode, groupOutput
         else:
             try:
                 filename = params['filename']
+                if filename == '':
+                    filename = None 
             except KeyError:
                 filename = None   
                 render = template.render(params)
                 save_file(render, appendmode, filename)
     elif format == Format.CSV:
         print(LoggingSeverity.INFO + 'Parameter file is CSV')
+        with open(parameterfilePath) as f:
+            params = csv.DictReader(f)
+            if groupOutput:
+                groupname = input_group_output()
+            else:
+                groupname = None
+            for row in params:
+                try:
+                    filename = row['filename']
+                    if filename == '':
+                        filename = None  
+                except KeyError:
+                    filename = None   
+                render = template.render(row)
+                save_file(render, appendmode, filename, groupname)
+
     else:
         print(LoggingSeverity.ERROR + 'Invalid parameter file. (Available Files is .csv/.json)')
 
